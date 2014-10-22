@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<?xml-stylesheet type="text/xsl" href="DefaultStylesheet.xsl"?>
+<log>
+<record>
+  <date>2014-10-22T13:56:53</date>
+  <millis>1413979013980</millis>
+  <sequence>102</sequence>
+  <logger>com.ti</logger>
+  <level>INFO</level>
+  <class>com.ti.ccstudio.scripting.environment.ScriptingEnvironment</class>
+  <method>traceWrite</method>
+  <thread>10</thread>
+  <message>TARGET: Texas Instruments XDS100v2 USB Emulator_0</message>
+</record>
+<record>
+  <date>2014-10-22T13:56:53</date>
+  <millis>1413979013980</millis>
+  <sequence>109</sequence>
+  <logger>com.ti</logger>
+  <level>INFO</level>
+  <class>com.ti.ccstudio.scripting.environment.ScriptingEnvironment</class>
+  <method>traceWrite</method>
+  <thread>10</thread>
+  <message>Connected</message>
+</record>
+<record>
+  <date>2014-10-22T13:56:55</date>
+  <millis>1413979015674</millis>
+  <sequence>113</sequence>
+  <logger>com.ti.debug.engine.scripting.DebugSession</logger>
+  <level>INFO</level>
+  <class>com.ti.debug.engine.scripting.DebugSession$DebuggerInfoListener</class>
+  <method>onEvent</method>
+  <thread>12</thread>
+  <message>CortexR4: GEL Output: 	Memory Map Setup for Flash @ Address 0x0 due to System Reset
+</message>
+</record>
+<record>
+  <date>2014-10-22T13:58:05</date>
+  <millis>1413979085049</millis>
+  <sequence>123</sequence>
+  <logger>com.ti.debug.engine.scripting.DebugSession</logger>
+  <level>INFO</level>
+  <class>com.ti.debug.engine.scripting.DebugSession$DebuggerInfoListener</class>
+  <method>onEvent</method>
+  <thread>12</thread>
+  <message>CortexR4: GEL Output: 	Memory Map Setup for Flash @ Address 0x0 due to System Reset
+</message>
+</record>
+<record>
+  <date>2014-10-22T13:58:05</date>
+  <millis>1413979085051</millis>
+  <sequence>127</sequence>
+  <logger>com.ti</logger>
+  <level>INFO</level>
+  <class>com.ti.ccstudio.scripting.environment.ScriptingEnvironment</class>
+  <method>traceWrite</method>
+  <thread>10</thread>
+  <message>Load complete</message>
+</record>
+<record>
+  <date>2014-10-22T13:59:24</date>
+  <millis>1413979164013</millis>
+  <sequence>146</sequence>
+  <logger>com.ti</logger>
+  <level>INFO</level>
+  <class>com.ti.ccstudio.scripting.environment.ScriptingEnvironment</class>
+  <method>traceWrite</method>
+  <thread>10</thread>
+  <message>interrupt!</message>
+</record>
+<record>
+  <date>2014-10-22T13:59:24</date>
+  <millis>1413979164077</millis>
+  <sequence>157</sequence>
+  <logger>com.ti</logger>
+  <level>INFO</level>
+  <class>com.ti.ccstudio.scripting.environment.ScriptingEnvironment</class>
+  <method>traceWrite</method>
+  <thread>10</thread>
+  <message>1610613138</message>
+</record>
+<record>
+  <date>2014-10-22T13:59:25</date>
+  <millis>1413979165819</millis>
+  <sequence>164</sequence>
+  <logger>com.ti</logger>
+  <level>INFO</level>
+  <class>com.ti.ccstudio.scripting.environment.ScriptingEnvironment</class>
+  <method>traceWrite</method>
+  <thread>10</thread>
+  <message>interrupt!</message>
+</record>
+<record>
+  <date>2014-10-22T13:59:27</date>
+  <millis>1413979167556</millis>
+  <sequence>171</sequence>
+  <logger>com.ti</logger>
+  <level>INFO</level>
+  <class>com.ti.ccstudio.scripting.environment.ScriptingEnvironment</class>
+  <method>traceWrite</method>
+  <thread>10</thread>
+  <message>interrupt!</message>
+</record>
+</log>
