@@ -21,8 +21,8 @@
 #include "os_semphr.h"
 #include "os_event_groups.h"
 
-#define SEMAPHORE_WAIT_TIME 50
-#define EVENT_WAIT_TIME 50
+#define SEMAPHORE_WAIT_TIME 10
+#define EVENT_WAIT_TIME 1
 
 SemaphoreHandle_t i2c_mutex;
 EventGroupHandle_t i2c_events;
@@ -46,6 +46,8 @@ BaseType_t i2cSendMessageOS(uint8 addr, uint8 reg, uint8 *data, unsigned int len
 {
 	EventBits_t uxBits;
 	BaseType_t ret = pdFALSE;
+	TickType_t time;
+
 	i2cREG1->STR = (uint32)((uint32)I2C_AL_INT | (uint32)I2C_NACK_INT | (uint32)I2C_ARDY_INT);
 	if(xSemaphoreTake(i2c_mutex, SEMAPHORE_WAIT_TIME) == pdTRUE)
 	{
@@ -54,14 +56,26 @@ BaseType_t i2cSendMessageOS(uint8 addr, uint8 reg, uint8 *data, unsigned int len
 		i2cSetMode(i2cREG1, I2C_MASTER | I2C_TRANSMITTER | I2C_START_COND | I2C_STOP_COND);
 		g_i2cTransfer_t.data = data;
 		g_i2cTransfer_t.length = length;
-		i2cREG1->DXR = reg;
 		/* Enable Transmit Interrupt */
+
+		i2cREG1->DXR = reg;
 		i2cREG1->IMR |= (uint32)I2C_TX_INT;
 
-		uxBits = xEventGroupWaitBits(i2c_events, (uint8)I2C_TX_INT, pdTRUE, pdFALSE, EVENT_WAIT_TIME);
+		uxBits = xEventGroupWaitBits(i2c_events, (uint8)I2C_TX_INT, pdTRUE, pdFALSE, EVENT_WAIT_TIME*(1+((int)(length/30))));
 		if( ( uxBits & I2C_TX_INT ) != 0 )	// tx complete signal
 		{
-		     ret = pdTRUE;
+			time = xTaskGetTickCount();
+			while(i2cREG1->STR & (uint32)I2C_BUSBUSY)
+			{
+				taskYIELD();
+				if((xTaskGetTickCount() - time) > 1)
+				{
+					xSemaphoreGive(i2c_mutex);
+					return pdFALSE;
+				}
+			}
+
+			ret = pdTRUE;
 		}
 		xSemaphoreGive(i2c_mutex);
 	}
@@ -72,25 +86,42 @@ BaseType_t i2cReceiveMessageOS(uint8 addr, uint8 reg, uint8 *data, unsigned int 
 {
 	EventBits_t uxBits;
 	BaseType_t ret = pdFALSE;
+	TickType_t time;
+
+	i2cREG1->STR = (uint32)((uint32)I2C_AL_INT | (uint32)I2C_NACK_INT | (uint32)I2C_ARDY_INT);
 
 	if(xSemaphoreTake(i2c_mutex, SEMAPHORE_WAIT_TIME) == pdTRUE)
 	{
 		i2cSetSlaveAdd(i2cREG1, addr);
 		i2cSetCount(i2cREG1, 1);
+		i2cREG1->MDR = i2cREG1->MDR & ~((uint32)I2C_STOP_COND);
 		i2cSetMode(i2cREG1, I2C_MASTER | I2C_TRANSMITTER | I2C_START_COND);
 		g_i2cTransfer_t.length = 0U;
+		g_i2cTransfer_t.data = data;
 		i2cREG1->DXR = reg;
-		i2cREG1->IMR |= 0x4;
-		uxBits = xEventGroupWaitBits(i2c_events, I2C_TX_INT, pdTRUE, pdFALSE, EVENT_WAIT_TIME);
-		if( ( uxBits & I2C_TX_INT ) != 0 )	// READY signal
+		i2cREG1->IMR |= (uint32)I2C_ARDY_INT;
+
+		uxBits = xEventGroupWaitBits(i2c_events, (uint8)I2C_ARDY_INT, pdTRUE, pdFALSE, EVENT_WAIT_TIME);
+		if( ( uxBits & I2C_ARDY_INT ) != 0 )	// tx complete signal
 		{
+			i2cREG1->IMR |= (uint32)I2C_RX_INT;
 			i2cSetMode(i2cREG1, I2C_MASTER | I2C_RECEIVER | I2C_START_COND | I2C_STOP_COND);
 			i2cREG1->MDR = i2cREG1->MDR & (uint32)0xFFFFFDFF;
 			i2cSetCount(i2cREG1, length);
 			i2cReceive(i2cREG1, length, data);
-			uxBits = xEventGroupWaitBits(i2c_events, I2C_RX_INT, pdTRUE, pdFALSE, EVENT_WAIT_TIME);
+			uxBits = xEventGroupWaitBits(i2c_events, (uint8)I2C_RX_INT, pdTRUE, pdFALSE, EVENT_WAIT_TIME*(1+((int)(length/30))));
 			if( ( uxBits & I2C_RX_INT ) != 0 )	// rx complete signal
 			{
+				time = xTaskGetTickCount();
+				while(i2cREG1->STR & (uint32)I2C_BUSBUSY)
+				{
+					taskYIELD();
+					if((xTaskGetTickCount() - time) > 1)
+					{
+						xSemaphoreGive(i2c_mutex);
+						return pdFALSE;
+					}
+				}
 				ret = pdTRUE;
 			}
 		}
@@ -809,6 +840,12 @@ void i2cNotification(i2cBASE_t *i2c, uint32 flags)
 
   BaseType_t xHigherPriorityTaskWoken;    
   xHigherPriorityTaskWoken = pdFALSE;
+  if(flags & (uint32)I2C_ARDY_INT)
+  {
+	  i2cREG1->IMR &= ~((uint32)I2C_ARDY_INT);
+	  i2cREG1->STR =  i2cREG1->STR | (uint32)I2C_ARDY;
+  }
+
   xEventGroupSetBitsFromISR(i2c_events, flags, &xHigherPriorityTaskWoken);
   portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 
@@ -888,7 +925,12 @@ void i2cInterrupt(void)
                 i2cREG1->IMR &= (uint32)(~(uint32)I2C_TX_INT);
                 i2cNotification(i2cREG1, (uint32)I2C_TX_INT);
             }
-        }			
+        }
+        //else if(g_i2cTransfer_t.length == 0U)
+        //{   /* Disable TX interrupt after desired data count transfered*/
+        //    i2cREG1->IMR &= (uint32)(~(uint32)I2C_TX_INT);
+        //    i2cNotification(i2cREG1, (uint32)I2C_TX_INT);
+        //}
         break;
 
     case 6U:

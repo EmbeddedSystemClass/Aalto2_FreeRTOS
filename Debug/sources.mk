@@ -107,10 +107,17 @@ system/source \
 subsystems/test \
 subsystems/main \
 subsystems/cli \
+subsystems/TorqueControl \
 subsystems/TaskManaging \
+subsystems/SensorReading \
+subsystems/SU \
 subsystems/FreeRTOS-Plus-FAT-SL/psp/target/rtc \
 subsystems/FreeRTOS-Plus-FAT-SL/psp/target/fat_sl \
 subsystems/FreeRTOS-Plus-FAT-SL/media-drv/ram \
 subsystems/FreeRTOS-Plus-FAT-SL/fat_sl/common \
 subsystems/FreeRTOS-Plus-CLI \
+subsystems/ADS \
+subsystems/ADS/A2_ADCS_HIL \
+subsystems/ACS \
+Library/mesch12b \
 

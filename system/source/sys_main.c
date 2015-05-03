@@ -22,6 +22,11 @@
 #include "os_task.h"
 #include "sci.h"
 #include "i2c.h"
+#include "spi.h"
+#include "can.h"
+
+#include "fat_sl.h"
+#include "api_mdriver_ram.h"
 
 #include "TaskManaging.h"
 
@@ -43,10 +48,22 @@ void main(void)
 {
 /* USER CODE BEGIN (3) */
 
+	char fs_buffer[50];
+
 	sciInit();
 	i2cInit();
-	//i2cEnableNotification(i2cREG1, I2C_RX_INT | I2C_TX_INT );
+	i2cEnableNotification(i2cREG1, I2C_RX_INT | I2C_TX_INT );
+	spiInit();
+	spiEnableNotification(spiREG4, (uint32)((uint32)0U << 9U) | (uint32)((uint32)0U << 8U));
+	canInit();
+	canCreateLinkOS(1, 16, 64);
+	canCreateLinkOS(2, 2, 64);
 	//initTest();
+	/*char ret;
+	ret = f_initvolume(ram_initfunc);
+	ret = f_format( F_FAT12_MEDIA );
+	ret = fs_init();
+	FatCli();*/
 
 	TaskManaging();
 

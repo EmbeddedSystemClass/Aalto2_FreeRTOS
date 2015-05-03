@@ -4,4 +4,6 @@
 void cliTask(void *pvParameters);
 void cliInit(void);
 
+void cliPrintf(char *WriteBuffer);
+
 #endif

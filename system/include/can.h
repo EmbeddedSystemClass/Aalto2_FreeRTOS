@@ -23,6 +23,11 @@ extern "C" {
 #endif
 
 /* USER CODE BEGIN (0) */
+
+#include "FreeRTOS.h"
+#include "os_queue.h"
+#include "os_semphr.h"
+
 /* USER CODE END */
 
 /* CAN General Definitions */
@@ -708,8 +713,8 @@ typedef struct can_config_reg
 /* CAN Interface Functions */
 
 void   canInit(void);
-uint32 canTransmit(canBASE_t *node, uint32 messageBox, const uint8 * data);
-uint32 canGetData(canBASE_t *node, uint32 messageBox, uint8 * const data);
+uint32 canTransmit(canBASE_t *node, uint32 messageBox, uint8 length, const uint8 * data);
+uint32 canGetData(canBASE_t *node, uint32 messageBox, uint8 *length, uint8 * const data);
 uint32 canSendRemoteFrame(canBASE_t *node, uint32 messageBox);
 uint32 canFillMessageObjectData(canBASE_t *node, uint32 messageBox, const uint8 * data);
 uint32 canIsTxMessagePending(canBASE_t *node, uint32 messageBox);
@@ -779,6 +784,9 @@ void canStatusChangeNotification(canBASE_t *node, uint32 notification);
 void canMessageNotification(canBASE_t *node, uint32 messageBox);
 
 /* USER CODE BEGIN (2) */
+void canCreateLinkOS(uint8 link_num, uint8 link_addr, uint32 buffer_length);
+BaseType_t can1SendOS(uint32 link, uint32 length, uint8 * data);
+BaseType_t can1ReceiveOS(uint32 link, uint32 length, uint8 * data);
 /* USER CODE END */
 
 /**@}*/

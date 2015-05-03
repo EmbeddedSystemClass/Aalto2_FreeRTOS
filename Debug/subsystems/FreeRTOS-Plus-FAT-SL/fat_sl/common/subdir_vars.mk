@@ -8,6 +8,7 @@ C_SRCS += \
 ../subsystems/FreeRTOS-Plus-FAT-SL/fat_sl/common/drv.c \
 ../subsystems/FreeRTOS-Plus-FAT-SL/fat_sl/common/f_lock.c \
 ../subsystems/FreeRTOS-Plus-FAT-SL/fat_sl/common/fat.c \
+../subsystems/FreeRTOS-Plus-FAT-SL/fat_sl/common/fat_cli.c \
 ../subsystems/FreeRTOS-Plus-FAT-SL/fat_sl/common/file.c \
 ../subsystems/FreeRTOS-Plus-FAT-SL/fat_sl/common/util.c \
 ../subsystems/FreeRTOS-Plus-FAT-SL/fat_sl/common/util_sfn.c \
@@ -18,6 +19,7 @@ OBJS += \
 ./subsystems/FreeRTOS-Plus-FAT-SL/fat_sl/common/drv.obj \
 ./subsystems/FreeRTOS-Plus-FAT-SL/fat_sl/common/f_lock.obj \
 ./subsystems/FreeRTOS-Plus-FAT-SL/fat_sl/common/fat.obj \
+./subsystems/FreeRTOS-Plus-FAT-SL/fat_sl/common/fat_cli.obj \
 ./subsystems/FreeRTOS-Plus-FAT-SL/fat_sl/common/file.obj \
 ./subsystems/FreeRTOS-Plus-FAT-SL/fat_sl/common/util.obj \
 ./subsystems/FreeRTOS-Plus-FAT-SL/fat_sl/common/util_sfn.obj \
@@ -28,6 +30,7 @@ C_DEPS += \
 ./subsystems/FreeRTOS-Plus-FAT-SL/fat_sl/common/drv.pp \
 ./subsystems/FreeRTOS-Plus-FAT-SL/fat_sl/common/f_lock.pp \
 ./subsystems/FreeRTOS-Plus-FAT-SL/fat_sl/common/fat.pp \
+./subsystems/FreeRTOS-Plus-FAT-SL/fat_sl/common/fat_cli.pp \
 ./subsystems/FreeRTOS-Plus-FAT-SL/fat_sl/common/file.pp \
 ./subsystems/FreeRTOS-Plus-FAT-SL/fat_sl/common/util.pp \
 ./subsystems/FreeRTOS-Plus-FAT-SL/fat_sl/common/util_sfn.pp \
@@ -38,6 +41,7 @@ C_DEPS__QUOTED += \
 "subsystems/FreeRTOS-Plus-FAT-SL/fat_sl/common/drv.pp" \
 "subsystems/FreeRTOS-Plus-FAT-SL/fat_sl/common/f_lock.pp" \
 "subsystems/FreeRTOS-Plus-FAT-SL/fat_sl/common/fat.pp" \
+"subsystems/FreeRTOS-Plus-FAT-SL/fat_sl/common/fat_cli.pp" \
 "subsystems/FreeRTOS-Plus-FAT-SL/fat_sl/common/file.pp" \
 "subsystems/FreeRTOS-Plus-FAT-SL/fat_sl/common/util.pp" \
 "subsystems/FreeRTOS-Plus-FAT-SL/fat_sl/common/util_sfn.pp" \
@@ -48,6 +52,7 @@ OBJS__QUOTED += \
 "subsystems/FreeRTOS-Plus-FAT-SL/fat_sl/common/drv.obj" \
 "subsystems/FreeRTOS-Plus-FAT-SL/fat_sl/common/f_lock.obj" \
 "subsystems/FreeRTOS-Plus-FAT-SL/fat_sl/common/fat.obj" \
+"subsystems/FreeRTOS-Plus-FAT-SL/fat_sl/common/fat_cli.obj" \
 "subsystems/FreeRTOS-Plus-FAT-SL/fat_sl/common/file.obj" \
 "subsystems/FreeRTOS-Plus-FAT-SL/fat_sl/common/util.obj" \
 "subsystems/FreeRTOS-Plus-FAT-SL/fat_sl/common/util_sfn.obj" \
@@ -58,6 +63,7 @@ C_SRCS__QUOTED += \
 "../subsystems/FreeRTOS-Plus-FAT-SL/fat_sl/common/drv.c" \
 "../subsystems/FreeRTOS-Plus-FAT-SL/fat_sl/common/f_lock.c" \
 "../subsystems/FreeRTOS-Plus-FAT-SL/fat_sl/common/fat.c" \
+"../subsystems/FreeRTOS-Plus-FAT-SL/fat_sl/common/fat_cli.c" \
 "../subsystems/FreeRTOS-Plus-FAT-SL/fat_sl/common/file.c" \
 "../subsystems/FreeRTOS-Plus-FAT-SL/fat_sl/common/util.c" \
 "../subsystems/FreeRTOS-Plus-FAT-SL/fat_sl/common/util_sfn.c" \

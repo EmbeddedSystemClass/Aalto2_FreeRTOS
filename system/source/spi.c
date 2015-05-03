@@ -12,6 +12,20 @@
 #include "spi.h"
 #include "sys_vim.h"
 /* USER CODE BEGIN (1) */
+
+#include "os_task.h"
+#include "os_queue.h"
+#include "os_timer.h"
+#include "os_semphr.h"
+#include "os_event_groups.h"
+
+#define SEMAPHORE_WAIT_TIME 10
+#define EVENT_WAIT_TIME 1
+
+SemaphoreHandle_t spi_mutex[2];
+EventGroupHandle_t spi_events[2];
+
+
 /* USER CODE END */
 
 /** @struct g_spiPacket
@@ -73,7 +87,7 @@ void spiInit(void)
                   | (uint32)((uint32)0U << 17U)  /* clock polarity */
                   | (uint32)((uint32)0U << 16U)  /* clock phase */
                   | (uint32)((uint32)99U << 8U) /* baudrate prescale */
-                  | (uint32)((uint32)16U << 0U);  /* data word length */
+                  | (uint32)((uint32)8U << 0U);  /* data word length */
 
     /** - Data Format 1 */
     spiREG3->FMT1 = (uint32)((uint32)0U << 24U)  /* wdelay */
@@ -197,11 +211,11 @@ void spiInit(void)
     /* SPI3 set all pins to functional */
     spiREG3->PC0  =   (uint32)((uint32)1U << 0U)  /* SCS[0] */
                     | (uint32)((uint32)1U << 1U)  /* SCS[1] */
-                    | (uint32)((uint32)1U << 2U)  /* SCS[2] */
-                    | (uint32)((uint32)1U << 3U)  /* SCS[3] */
-                    | (uint32)((uint32)1U << 4U)  /* SCS[4] */
-                    | (uint32)((uint32)1U << 5U)  /* SCS[5] */
-                    | (uint32)((uint32)1U << 8U)  /* ENA */
+                    | (uint32)((uint32)0U << 2U)  /* SCS[2] */
+                    | (uint32)((uint32)0U << 3U)  /* SCS[3] */
+                    | (uint32)((uint32)0U << 4U)  /* SCS[4] */
+                    | (uint32)((uint32)0U << 5U)  /* SCS[5] */
+                    | (uint32)((uint32)0U << 8U)  /* ENA */
                     | (uint32)((uint32)1U << 9U)  /* CLK */
                     | (uint32)((uint32)1U << 10U)  /* SIMO */
                     | (uint32)((uint32)1U << 11U); /* SOMI */
@@ -242,7 +256,7 @@ void spiInit(void)
                   | (uint32)((uint32)0U << 17U)  /* clock polarity */
                   | (uint32)((uint32)0U << 16U)  /* clock phase */
                   | (uint32)((uint32)99U << 8U) /* baudrate prescale */
-                  | (uint32)((uint32)16U << 0U);  /* data word length */
+                  | (uint32)((uint32)8U << 0U);  /* data word length */
 
     /** - Data Format 1 */
     spiREG4->FMT1 = (uint32)((uint32)0U << 24U)  /* wdelay */
@@ -339,8 +353,8 @@ void spiInit(void)
                     | (uint32)((uint32)0U << 11U); /* SOMI */
 
     /* SPI4 set all pins to functional */
-    spiREG4->PC0  =   (uint32)((uint32)1U << 0U)  /* SCS[0] */
-                    | (uint32)((uint32)1U << 8U)  /* ENA */
+    spiREG4->PC0  =   (uint32)((uint32)0U << 0U)  /* SCS[0] */
+                    | (uint32)((uint32)0U << 8U)  /* ENA */
                     | (uint32)((uint32)1U << 9U)  /* CLK */
                     | (uint32)((uint32)1U << 10U)  /* SIMO */
                     | (uint32)((uint32)1U << 11U); /* SOMI */
@@ -354,6 +368,13 @@ void spiInit(void)
 
 
 /* USER CODE BEGIN (3) */
+
+    spi_mutex[0] = xSemaphoreCreateMutex();
+    spi_events[0] = xEventGroupCreate();
+
+    spi_mutex[1] = xSemaphoreCreateMutex();
+    spi_events[1] = xEventGroupCreate();
+
 /* USER CODE END */
 }
 
@@ -930,6 +951,98 @@ void spi4GetConfigValue(spi_config_reg_t *config_reg, config_value_type_t type)
 
 
 /* USER CODE BEGIN (54) */
+
+BaseType_t spiGetDataOS(spiBASE_t *spi, spiDAT1_t *dataconfig_t, uint32 blocksize, uint16 * destbuff)
+{
+	EventBits_t uxBits;
+	BaseType_t ret = pdFALSE;
+	TickType_t time;
+
+	uint32 index = (spi == spiREG3) ? 0U :(spi==spiREG4) ? 1U : 2U;
+	if(index == 2U)
+	{
+		return pdFALSE;
+	}
+
+	if(xSemaphoreTake(spi_mutex[index], SEMAPHORE_WAIT_TIME) == pdTRUE)
+	{
+		spiGetData(spi, dataconfig_t, blocksize-1, destbuff+1);
+
+		uxBits = xEventGroupWaitBits(spi_events[index], (uint8)1U, pdTRUE, pdFALSE, EVENT_WAIT_TIME*(1+((int)(blocksize/100))));
+		if( ( uxBits & 1U ) != 0 )	// rx complete signal
+		{
+			ret = pdTRUE;
+		}
+		xSemaphoreGive(spi_mutex[index]);
+	}
+	return ret;
+}
+
+BaseType_t spiSendDataOS(spiBASE_t *spi, spiDAT1_t *dataconfig_t, uint32 blocksize, uint16 * srcbuff)
+{
+	EventBits_t uxBits;
+	BaseType_t ret = pdFALSE;
+	TickType_t time;
+
+	uint32 index = (spi == spiREG3) ? 0U :(spi==spiREG4) ? 1U : 2U;
+	if(index == 2U)
+	{
+		return pdFALSE;
+	}
+
+	if(xSemaphoreTake(spi_mutex[index], SEMAPHORE_WAIT_TIME) == pdTRUE)
+	{
+		spiSendData(spi, dataconfig_t, blocksize, srcbuff);
+		uxBits = xEventGroupWaitBits(spi_events[index], (uint8)1U, pdTRUE, pdFALSE, EVENT_WAIT_TIME*(1+((int)(blocksize/100))));
+		if( ( uxBits & 1U ) != 0 )	// tx complete signal
+		{
+			ret = pdTRUE;
+		}
+		xSemaphoreGive(spi_mutex[index]);
+	}
+	return ret;
+}
+
+BaseType_t spiSendAndGetDataOS(spiBASE_t *spi, spiDAT1_t *dataconfig_t, uint32 blocksize, uint16 * srcbuff, uint16 * destbuff)
+{
+	EventBits_t uxBits;
+	BaseType_t ret = pdFALSE;
+	TickType_t time;
+
+	uint32 index = (spi == spiREG3) ? 0U :(spi==spiREG4) ? 1U : 2U;
+	if(index == 2U)
+	{
+		return pdFALSE;
+	}
+
+	if(xSemaphoreTake(spi_mutex[index], SEMAPHORE_WAIT_TIME) == pdTRUE)
+	{
+		spiSendAndGetData(spi, dataconfig_t, blocksize, srcbuff, destbuff);
+		uxBits = xEventGroupWaitBits(spi_events[index], (uint8)1U, pdTRUE, pdFALSE, EVENT_WAIT_TIME*(1+((int)(blocksize/100))));
+		if( ( uxBits & 1U ) != 0 )	// rx complete signal
+		{
+			ret = pdTRUE;
+		}
+		xSemaphoreGive(spi_mutex[index]);
+	}
+	return ret;
+}
+
+
+void spiEndNotification(spiBASE_t *spi)
+{
+	BaseType_t xHigherPriorityTaskWoken;
+	xHigherPriorityTaskWoken = pdFALSE;
+	uint32 index = (spi == spiREG3) ? 0U :(spi==spiREG4) ? 1U : 2U;
+	if(index == 2U)
+	{
+		return;
+	}
+	xEventGroupSetBitsFromISR(spi_events[index], 1U, &xHigherPriorityTaskWoken);
+	portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+
+}
+
 /* USER CODE END */
 
 /** @fn void mibspi3HighInterruptLevel(void)

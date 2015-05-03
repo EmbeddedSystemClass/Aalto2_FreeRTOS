@@ -126,6 +126,7 @@ only for ports that are using the MPU. */
         #define vPortInitialiseBlocks           MPU_vPortInitialiseBlocks
 
 		#define xEventGroupWaitBits				MPU_xEventGroupWaitBits
+		#define xEventGroupSetBits				MPU_xEventGroupSetBits
 
         #if configQUEUE_REGISTRY_SIZE > 0
             #define vQueueAddToRegistry         MPU_vQueueAddToRegistry

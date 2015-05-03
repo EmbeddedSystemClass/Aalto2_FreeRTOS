@@ -1092,35 +1092,38 @@ BaseType_t sciSendOS(sciBASE_t *sci, uint32 length, uint8 * data)
 
     if ((g_sciTransfer_t[index].mode & (uint32)SCI_TX_INT) != 0U)
     {
-	xSemaphoreTake(sciM[index], portMAX_DELAY);
+    	xSemaphoreTake(sciM[index], portMAX_DELAY);
         /* we are in interrupt mode */
     	message_waiting = uxQueueMessagesWaiting(sciTQ[index]);
         if(uxQueueSpacesAvailable(sciTQ[index]) < length)
         {
         	xSemaphoreGive(sciM[index]);
-		return pdFALSE;
+        	return pdFALSE;
         }
         for(i = 0; i < length; i++)
         {
         	if(xQueueSendToBack(sciTQ[index], &data[i], QUEUE_WAIT) == errQUEUE_FULL)
         	{
         		xSemaphoreGive(sciM[index]);
-			return pdFALSE;
+        		return pdFALSE;
         	}
         }
 
-        if(message_waiting == 0 || (sci->FLR & (uint32)SCI_TX_INT) == 1U)	// if queue was empty or the buffer is empty
+        if(message_waiting == 0/* || (sci->FLR & (uint32)SCI_TX_INT) == 1U*/)	// if queue was empty or the buffer is empty
         {
+        	while ((sci->FLR & (uint32)SCI_TX_INT) == 0U)
+        	{
+        	}
         	xQueueReceive(sciTQ[index], &txdata, QUEUE_WAIT);
 
         	sci->TD = (uint32)(txdata);
-		sci->SETINT = (uint32)SCI_TX_INT;
+        	sci->SETINT = (uint32)SCI_TX_INT;
         }
-	xSemaphoreGive(sciM[index]);
+        xSemaphoreGive(sciM[index]);
     }
     else
     {
-	return pdFALSE;
+    	return pdFALSE;
     }
     return pdTRUE;
 }

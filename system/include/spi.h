@@ -99,6 +99,7 @@ typedef enum SpiTxRxDataStatus
 }SpiDataStatus_t;
 
 /* USER CODE BEGIN (0) */
+#include "FreeRTOS.h"
 /* USER CODE END */
 
 typedef struct spi_config_reg
@@ -216,6 +217,11 @@ void spiEndNotification(spiBASE_t *spi);
 
 /**@}*/
 /* USER CODE BEGIN (1) */
+
+BaseType_t spiGetDataOS(spiBASE_t *spi, spiDAT1_t *dataconfig_t, uint32 blocksize, uint16 * destbuff);
+BaseType_t spiSendDataOS(spiBASE_t *spi, spiDAT1_t *dataconfig_t, uint32 blocksize, uint16 * srcbuff);
+BaseType_t spiSendAndGetDataOS(spiBASE_t *spi, spiDAT1_t *dataconfig_t, uint32 blocksize, uint16 * srcbuff, uint16 * destbuff);
+
 /* USER CODE END */
 
 #ifdef __cplusplus

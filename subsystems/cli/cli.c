@@ -12,26 +12,28 @@
 #include <string.h>
 #include <stdio.h>
 
-#define CMD_BUFFER_SIZE 150
+#define CMD_BUFFER_SIZE 200
 
 static char cli_input[CMD_BUFFER_SIZE], cli_output[CMD_BUFFER_SIZE];
+
+char tx_avail = 0;
 
 static BaseType_t prvSciSendCommand( char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString )
 {
 	sciBASE_t *sci;
 	BaseType_t len;
-	int param_len;
+	//int param_len;
 	int sci_n;
 	char *param_p;
 	param_p = (char *)FreeRTOS_CLIGetParameter(pcCommandString, 1, &len);
 	sscanf(param_p, "%d", &sci_n);
+	//param_p = (char *)FreeRTOS_CLIGetParameter(pcCommandString, 2, &len);
+	//sscanf(param_p, "%d", &param_len);
 	param_p = (char *)FreeRTOS_CLIGetParameter(pcCommandString, 2, &len);
-	sscanf(param_p, "%d", &param_len);
-	param_p = (char *)FreeRTOS_CLIGetParameter(pcCommandString, 3, &len);
 
 	sci = sci_n ? sciREG : scilinREG;
 
-	if(sciSendOS(sci, param_len, (uint8*)param_p) == pdPASS)
+	if(sciSendOS(sci, len, (uint8*)param_p) == pdPASS)
 	{
 		strncpy(pcWriteBuffer, "Sending complete\n\0", 18);
 	}
@@ -41,12 +43,13 @@ static BaseType_t prvSciSendCommand( char *pcWriteBuffer, size_t xWriteBufferLen
 	}
 	return pdFALSE;
 }
+
 CLI_Command_Definition_t xSciSendCommand =
 {
 	"sciSend",
 	"\r\nsciSend sci len msg:\r\n Send data through sci\r\n\r\n",
 	prvSciSendCommand,
-	3
+	2
 };
 
 void cliInit(void)
@@ -83,5 +86,22 @@ void cliTask(void *pvParameters)
 				sciSendOS(scilinREG, 14, (uint8*)"cmd too long\r\n");
 			}
 		}
+
+		// unsafe unsafe unsafe
+		if(tx_avail)
+		{
+			send_len = strlen(cli_output);
+			sciSendOS(scilinREG, send_len, (uint8*)cli_output);
+			tx_avail = 0;
+		}
 	}
 }
+
+void cliPrintf(char *WriteBuffer)
+{
+	unsigned int str_len;
+	str_len = strlen(cli_output);
+	strncpy(cli_output, WriteBuffer, str_len);
+	tx_avail = 1;
+}
+

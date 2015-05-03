@@ -23,6 +23,16 @@
 #include "sys_vim.h"
 
 /* USER CODE BEGIN (1) */
+
+#define USE_QUEUES_CAN
+#define QUEUE_WAIT 20
+
+uint32 links_set = 0;
+QueueHandle_t canTQ[32];
+QueueHandle_t canRQ[32];
+
+SemaphoreHandle_t canSM[32];
+
 /* USER CODE END */
 
 
@@ -47,7 +57,7 @@
 /* SourceId : CAN_SourceId_001 */
 /* DesignId : CAN_DesignId_001 */
 /* Requirements : HL_SR207 */
-void canInit(void)
+void canInit()
 {
 /* USER CODE BEGIN (4) */
 /* USER CODE END */
@@ -70,8 +80,8 @@ void canInit(void)
     *     - Disable status interrupts
     *     - Enter initialization mode
     */
-    canREG1->CTL = (uint32)0x00000000U 
-                 | (uint32)0x00000000U 
+    canREG1->CTL = (uint32)0x00000000U
+                 | (uint32)0x00000000U
                  | (uint32)((uint32)0x00000005U  << 10U)
                  | (uint32)0x00020043U;
 
@@ -148,27 +158,27 @@ void canInit(void)
     /** - Setup auto bus on timer period */
     canREG1->ABOTR = (uint32)0U;
 
-    /** - Setup IF1 for data transmission 
-    *     - Wait until IF1 is ready for use 
+    /** - Setup IF1 for data transmission
+    *     - Wait until IF1 is ready for use
     *     - Set IF1 control byte
     */
     /*SAFETYMCUSW 28 D MR:NA <APPROVED> "Potentially infinite loop found - Hardware Status check for execution sequence" */
     while ((canREG1->IF1STAT & 0x80U) ==0x80U)
-    { 
+    {
     } /* Wait */
     canREG1->IF1CMD  = 0x87U;
 
     /** - Setup IF2 for reading data
-    *     - Wait until IF1 is ready for use 
+    *     - Wait until IF1 is ready for use
     *     - Set IF1 control byte
     */
     /*SAFETYMCUSW 28 D MR:NA <APPROVED> "Potentially infinite loop found - Hardware Status check for execution sequence" */
     while ((canREG1->IF2STAT & 0x80U) ==0x80U)
-    { 
+    {
     } /* Wait */
     canREG1->IF2CMD = 0x17U;
 
-    /** - Setup bit timing 
+    /** - Setup bit timing
     *     - Setup baud rate prescaler extension
     *     - Setup TSeg2
     *     - Setup TSeg1
@@ -185,17 +195,17 @@ void canInit(void)
      /** - CAN1 Port output values */
     canREG1->TIOC =  (uint32)((uint32)1U  << 18U )
                    | (uint32)((uint32)0U  << 17U )
-                   | (uint32)((uint32)0U  << 16U )                
-                   | (uint32)((uint32)1U  << 3U )  
-                   | (uint32)((uint32)1U  << 2U )    
+                   | (uint32)((uint32)0U  << 16U )
+                   | (uint32)((uint32)1U  << 3U )
+                   | (uint32)((uint32)1U  << 2U )
                    | (uint32)((uint32)1U << 1U );
-                   
-    canREG1->RIOC =  (uint32)((uint32)1U  << 18U )    
-                   | (uint32)((uint32)0U  << 17U )  
-                   | (uint32)((uint32)0U  << 16U )   
-                   | (uint32)((uint32)1U  << 3U )  
+
+    canREG1->RIOC =  (uint32)((uint32)1U  << 18U )
+                   | (uint32)((uint32)0U  << 17U )
+                   | (uint32)((uint32)0U  << 16U )
+                   | (uint32)((uint32)1U  << 3U )
                    | (uint32)((uint32)0U  << 2U )
-                   | (uint32)((uint32)0U <<1U );        
+                   | (uint32)((uint32)0U <<1U );
 
     /** - Leave configuration and initialization mode  */
     canREG1->CTL &= ~(uint32)(0x00000041U);
@@ -212,6 +222,53 @@ void canInit(void)
 }
 
 /* USER CODE BEGIN (6) */
+
+void canCreateLinkOS(uint8 link_num, uint8 link_addr, uint32 buffer_length)
+{
+
+    canREG1->CTL = (uint32)0x00000000U 
+                 | (uint32)0x00000000U 
+                 | (uint32)((uint32)0x00000005U  << 10U)
+                 | (uint32)0x00020043U;
+
+
+    	while ((canREG1->IF2STAT & 0x80U) ==0x80U)
+        {
+        } /* Wait */
+
+        canREG1->IF2MSK  = 0xC0000000U | (uint32)((uint32)((uint32)0x000007FFU & (uint32)0x000007FFU) << (uint32)18U);
+        canREG1->IF2ARB  = (uint32)0x80000000U | (uint32)0x00000000U | (uint32)0x20000000U | (uint32)((uint32)((uint32)(link_addr*2) & (uint32)0x000007FFU) << (uint32)18U);
+        canREG1->IF2MCTL = 0x00001080U | (uint32)0x00000800U | (uint32)0x00000000U | (uint32)8U;
+        canREG1->IF2CMD  = (uint8) 0xF8U;
+        canREG1->IF2NO   = link_num*2-1;
+
+        while ((canREG1->IF1STAT & 0x80U) ==0x80U)
+        {
+        } /* Wait */
+
+        canREG1->IF1MSK  = 0xC0000000U | (uint32)((uint32)((uint32)0x000007FFU & (uint32)0x000007FFU) << (uint32)18U);
+        canREG1->IF1ARB  = (uint32)0x80000000U | (uint32)0x00000000U | (uint32)0x00000000U | (uint32)((uint32)((uint32)((link_addr*2)+1) & (uint32)0x000007FFU) << (uint32)18U);
+        canREG1->IF1MCTL = 0x00001080U | (uint32)0x00000400U | (uint32)0x00000000U | (uint32)8U;
+        canREG1->IF1CMD  = (uint8) 0xF8U;
+        canREG1->IF1NO   = link_num*2;
+
+    /** - Leave configuration and initialization mode  */
+    canREG1->CTL &= ~(uint32)(0x00000041U);
+
+    if(links_set & (1<<link_num))
+    {
+    	vQueueDelete(canTQ[link_num]);
+    	vQueueDelete(canRQ[link_num]);
+    	vSemaphoreDelete(canSM[link_num]);
+    }
+
+   	canTQ[link_num] = xQueueCreate(buffer_length, sizeof(uint8));
+   	canRQ[link_num] = xQueueCreate(buffer_length, sizeof(uint8));
+   	canSM[link_num] = xSemaphoreCreateMutex();
+
+   	links_set |= (1<<link_num);
+}
+
 /* USER CODE END */
 
 /** @fn uint32 canTransmit(canBASE_t *node, uint32 messageBox, const uint8 * data)
@@ -237,7 +294,7 @@ void canInit(void)
 /* SourceId : CAN_SourceId_002 */
 /* DesignId : CAN_DesignId_002 */
 /* Requirements : HL_SR208 */
-uint32 canTransmit(canBASE_t *node, uint32 messageBox, const uint8 * data)
+uint32 canTransmit(canBASE_t *node, uint32 messageBox, uint8 length, const uint8 * data)
 {
     uint32 i;
     uint32 success  = 0U;
@@ -245,6 +302,7 @@ uint32 canTransmit(canBASE_t *node, uint32 messageBox, const uint8 * data)
     uint32 bitIndex = 1U << ((messageBox - 1U) & 0x1FU);
 
 /* USER CODE BEGIN (7) */
+
 /* USER CODE END */
 
 
@@ -269,8 +327,9 @@ uint32 canTransmit(canBASE_t *node, uint32 messageBox, const uint8 * data)
 	*     - Message direction - Write
 	*     - Data Update
 	*     - Start Transmission
-	*/	
-	node->IF1CMD = 0x87U;
+	*/
+    canREG1->IF1MCTL = 0x00001080U | (uint32)0x00000800U | (uint32)0x00000000U | (uint32)length;
+	node->IF1CMD = 0x97U;
 	
     /** - Copy TX data into IF1 */
     for (i = 0U; i < 8U; i++)
@@ -331,7 +390,7 @@ uint32 canTransmit(canBASE_t *node, uint32 messageBox, const uint8 * data)
 /* SourceId : CAN_SourceId_003 */
 /* DesignId : CAN_DesignId_003 */
 /* Requirements : HL_SR209 */
-uint32 canGetData(canBASE_t *node, uint32 messageBox, uint8 * const data)
+uint32 canGetData(canBASE_t *node, uint32 messageBox, uint8 *length, uint8 * const data)
 {
     uint32       i;
     uint32       size;
@@ -365,6 +424,7 @@ uint32 canGetData(canBASE_t *node, uint32 messageBox, uint8 * const data)
 		*     - Data Read
 		*     - Clears NewDat bit in the message object.
 		*/	
+
 		node->IF2CMD = 0x17U;
 		
 		/** - Copy data into IF2 */
@@ -385,6 +445,7 @@ uint32 canGetData(canBASE_t *node, uint32 messageBox, uint8 * const data)
 		{
 			size = 0x8U;
 		}
+		*length = size;
 		
 		/** - Copy RX data into destination buffer */
 		for (i = 0U; i < size; i++)
@@ -1172,6 +1233,105 @@ void can1GetConfigValue(can_config_reg_t *config_reg, config_value_type_t type)
 }
 
 /* USER CODE BEGIN (40) */
+
+BaseType_t can1SendOS(uint32 link, uint32 length, uint8 * data)
+{
+    int i;
+    int data_num;
+    int message_waiting;
+
+	xSemaphoreTake(canSM[link], portMAX_DELAY);
+
+	message_waiting = uxQueueMessagesWaiting(canTQ[link]);
+	if(uxQueueSpacesAvailable(canTQ[link]) < length)
+	{
+		xSemaphoreGive(canSM[link]);
+		return pdFALSE;
+	}
+	for(i = 0; i < length; i++)
+	{
+		if(xQueueSendToBack(canTQ[link], &data[i], QUEUE_WAIT) == errQUEUE_FULL)
+		{
+			xSemaphoreGive(canSM[link]);
+			return pdFALSE;
+		}
+	}
+
+	if(message_waiting == 0/* || (sci->FLR & (uint32)SCI_TX_INT) == 1U*/)	// if queue was empty or the buffer is empty
+	{
+		uint8 buffer[8];
+		data_num = uxQueueMessagesWaiting(canTQ[link]);
+		if(data_num > 8)
+		{
+			data_num = 8;
+		}
+		for(i = 0; i < data_num; i++)
+		{
+			xQueueReceive(canTQ[link], &buffer[i], QUEUE_WAIT);
+		}
+
+		canTransmit(canREG1, link*2, data_num, buffer);
+	}
+	xSemaphoreGive(canSM[link]);
+}
+
+BaseType_t can1ReceiveOS(uint32 link, uint32 length, uint8 * data)
+{
+    int i;
+
+	xSemaphoreTake(canSM[link], portMAX_DELAY);
+
+	for(i = 0; i < length; i++)
+	{
+		if(xQueueReceive(canRQ[link], data, QUEUE_WAIT) == pdFALSE)
+		{
+			xSemaphoreGive(canSM[link]);
+			return pdFALSE;
+		}
+		data++;
+	}
+	xSemaphoreGive(canSM[link]);
+
+    return pdTRUE;
+}
+
+void canMessageNotification(canBASE_t *node, uint32 messageBox)
+{
+	uint32 i;
+	uint8 data_num;
+	uint32 link = ((messageBox+1)>>1);
+	uint8 direction = messageBox&0x00000001; // 0 - receive; 1 - send
+	uint8 buffer[8];
+
+	if(direction)
+	{
+		data_num = uxQueueMessagesWaitingFromISR(canTQ[link]);
+		if(data_num > 8)
+		{
+			data_num = 8;
+		}
+		for(i = 0; i < data_num; i++)
+		{
+			xQueueReceiveFromISR(canTQ[link], &buffer[i], NULL);
+		}
+
+		canTransmit(canREG1, messageBox, data_num, buffer);
+	}
+	else
+	{
+		canGetData(canREG1, messageBox, &data_num, buffer);
+
+		for(i = 0; i < data_num; i++)
+		{
+			if(xQueueIsQueueFullFromISR(canRQ[link]) == pdFALSE)
+			{
+				xQueueSendToBackFromISR(canRQ[link], &buffer[i], NULL);
+			}
+		}
+	}
+
+}
+
 /* USER CODE END */
 /** @fn void can1HighLevelInterrupt(void)
 *   @brief CAN1 Level 0 Interrupt Handler

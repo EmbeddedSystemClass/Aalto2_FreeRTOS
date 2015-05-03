@@ -393,6 +393,14 @@ BaseType_t MPU_xQueueGenericReceive( QueueHandle_t xQueue, void * const pvBuffer
 	return xReturn;
 }
 
+/*----------------------------------------------------------------------------*/
+
+void MPU_vQueueDelete( QueueHandle_t xQueue )
+{
+	BaseType_t xRunningPrivileged = prvRaisePrivilege();
+	vQueueDelete( xQueue );
+	portRESET_PRIVILEGE( xRunningPrivileged );
+}
 
 /*----------------------------------------------------------------------------*/
 
@@ -564,6 +572,19 @@ EventBits_t MPU_xEventGroupWaitBits( EventGroupHandle_t xEventGroup, const Event
 
 	return xReturn;
 }
+
+EventBits_t MPU_xEventGroupSetBits( EventGroupHandle_t xEventGroup, const EventBits_t uxBitsToSet )
+{
+	size_t xReturn;
+	BaseType_t xRunningPrivileged = prvRaisePrivilege();
+
+	xReturn = xEventGroupSetBits(xEventGroup, uxBitsToSet);
+
+	portRESET_PRIVILEGE( xRunningPrivileged );
+
+	return xReturn;
+}
+
 
 
 
