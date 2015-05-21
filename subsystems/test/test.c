@@ -34,12 +34,15 @@ void spiTest2(void *pvParams);
 void fatTest(void *pvParams);
 
 
+void ReallocTest(void *pvParams);
+
+
 TaskDescriptor_t tdTest = {
 		0, // Queue number
 		0, // Semaphore number
 		0, // Events group number
 		2, // Priority
-		canTest1, // Work function
+		ReallocTest, // Work function
 		initTest, // Initialization function
 		20000, // Stack Size
 		TestCommands // Register commmands function
@@ -103,6 +106,48 @@ void initTest()
 
 }
 
+
+void ReallocTest(void *pvParams)
+{
+	char *a = NULL;
+	char *b = NULL;
+	char *c = NULL;
+	char *d = NULL;
+
+	int i;
+
+	typedef struct A_BLOCK_LINK
+	{
+		struct A_BLOCK_LINK *pxNextFreeBlock;	/*<< The next free block in the list. */
+		size_t xBlockSize;						/*<< The size of the free block. */
+	} BlockLink_t;
+
+	size_t xHeapStructSize	= ( ( sizeof( BlockLink_t ) + ( portBYTE_ALIGNMENT - 1 ) ) & ~portBYTE_ALIGNMENT_MASK );
+	BlockLink_t *pxBlock;
+
+	char output[20];
+
+	while(1)
+	{
+		a = (char *)pvPortRealloc(a, sizeof(char)*120);
+		pxBlock = (void *)(a - xHeapStructSize);
+
+		b = (char *)pvPortMalloc(sizeof(char)*20);
+		c = (char *)pvPortMalloc(sizeof(char)*20);
+		d = (char *)pvPortMalloc(sizeof(char)*20);
+		a = (char *)pvPortRealloc(a, sizeof(char)*500);
+		vPortFree(a);
+		vPortFree(b);
+		vPortFree(c);
+		vPortFree(d);
+		a = NULL;
+		b = NULL;
+		c = NULL;
+		d = NULL;
+
+		vTaskDelay(3000);
+	}
+}
 
 
 void canTest1(void *pvParams)

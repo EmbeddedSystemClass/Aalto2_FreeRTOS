@@ -344,6 +344,167 @@ BlockLink_t *pxLink;
 }
 /*-----------------------------------------------------------*/
 
+void *pvPortRealloc( void *pv, size_t xWantedSize )
+{
+	uint8_t *puc = ( uint8_t * ) pv;
+	BlockLink_t *pxLink;
+	BlockLink_t *pxNew;
+	BlockLink_t *pxIterator;
+
+	void *pvReturn = NULL;
+
+	if( pv == NULL )
+	{
+		return pvPortMalloc( xWantedSize );
+	}
+	else
+	{
+		/* The memory being freed will have an BlockLink_t structure immediately
+		before it. */
+		puc -= xHeapStructSize;
+
+		/* This casting is to keep the compiler from issuing warnings. */
+		pxLink = ( void * ) puc;
+
+		/* Check the block is actually allocated. */
+		configASSERT( ( pxLink->xBlockSize & xBlockAllocatedBit ) != 0 );
+		configASSERT( pxLink->pxNextFreeBlock == NULL );
+
+		xWantedSize += xHeapStructSize;
+
+		if( ( xWantedSize & portBYTE_ALIGNMENT_MASK ) != 0x00 )
+		{
+			/* Byte alignment required. */
+			xWantedSize += ( portBYTE_ALIGNMENT - ( xWantedSize & portBYTE_ALIGNMENT_MASK ) );
+			configASSERT( ( xWantedSize & portBYTE_ALIGNMENT_MASK ) == 0 );
+		}
+		else
+		{
+			mtCOVERAGE_TEST_MARKER();
+		}
+
+		if( ( pxLink->xBlockSize & xBlockAllocatedBit ) != 0 )
+		{
+			if( pxLink->pxNextFreeBlock == NULL )
+			{
+				pxLink->xBlockSize &= ~xBlockAllocatedBit;
+
+				if(xWantedSize == xHeapStructSize)
+				{
+					/* The block is being returned to the heap - it is no longer
+					allocated. */
+
+					vTaskSuspendAll();
+					{
+						/* Add this block to the list of free blocks. */
+						xFreeBytesRemaining += pxLink->xBlockSize;
+						traceFREE( pv, pxLink->xBlockSize );
+						prvInsertBlockIntoFreeList( ( ( BlockLink_t * ) pxLink ) );
+						pvReturn = NULL;
+					}
+					( void ) xTaskResumeAll();
+				}
+				else if(xWantedSize < pxLink->xBlockSize)
+				{
+					vTaskSuspendAll();
+					if( ( pxLink->xBlockSize - xWantedSize > heapMINIMUM_BLOCK_SIZE) )
+					{
+						pxNew = ( void * ) ( ( ( uint8_t * ) pxLink ) + xWantedSize );
+						configASSERT( ( ( ( uint32_t ) pxNew ) & portBYTE_ALIGNMENT_MASK ) == 0 );
+						pxNew->xBlockSize = pxLink->xBlockSize - xWantedSize;
+						pxNew->pxNextFreeBlock = NULL;
+						prvInsertBlockIntoFreeList( ( ( BlockLink_t * ) pxNew ) );
+
+						pxLink->xBlockSize = xWantedSize;
+						pxLink->xBlockSize |= xBlockAllocatedBit;
+					}
+					else
+					{
+						for( pxIterator = &xStart; pxIterator->pxNextFreeBlock < pxLink; pxIterator = pxIterator->pxNextFreeBlock )
+						{}
+						pxIterator = pxIterator->pxNextFreeBlock;
+
+						if( ( puc + pxLink->xBlockSize ) == ( uint8_t * ) pxIterator )
+						{
+							pxNew = ( void * ) ( ( ( uint8_t * ) pxLink ) + xWantedSize );
+							configASSERT( ( ( ( uint32_t ) pxNew ) & portBYTE_ALIGNMENT_MASK ) == 0 );
+							pxNew->xBlockSize = pxLink->xBlockSize - xWantedSize;
+							pxNew->pxNextFreeBlock = NULL;
+							prvInsertBlockIntoFreeList( ( ( BlockLink_t * ) pxNew ) );
+
+							pxLink->xBlockSize = xWantedSize;
+						}
+						pxLink->xBlockSize |= xBlockAllocatedBit;
+					}
+					pvReturn = ( void * ) ( ( ( uint8_t * ) pxLink ) + xHeapStructSize );
+					( void ) xTaskResumeAll();
+				}
+				else if(xWantedSize > pxLink->xBlockSize)
+				{
+					vTaskSuspendAll();
+
+					for( pxIterator = &xStart; pxIterator->pxNextFreeBlock < pxLink; pxIterator = pxIterator->pxNextFreeBlock )
+					{}
+
+					if( ( ( puc + pxLink->xBlockSize ) == ( uint8_t * ) pxIterator->pxNextFreeBlock ) &&
+							( pxIterator->pxNextFreeBlock->xBlockSize >= xWantedSize - pxLink->xBlockSize ) )
+					{
+						if(pxIterator->pxNextFreeBlock->xBlockSize - ( xWantedSize - pxLink->xBlockSize ) > heapMINIMUM_BLOCK_SIZE )
+						{
+							pxNew = ( BlockLink_t * )( puc + xWantedSize );
+							pxNew->xBlockSize = pxIterator->pxNextFreeBlock->xBlockSize - ( xWantedSize - pxLink->xBlockSize );
+							pxNew->pxNextFreeBlock = pxIterator->pxNextFreeBlock->pxNextFreeBlock;
+							pxIterator->pxNextFreeBlock = pxNew;
+
+							pxLink->xBlockSize = xWantedSize;
+							pxLink->xBlockSize |= xBlockAllocatedBit;
+						}
+						else
+						{
+							pxLink->xBlockSize = ( ( uint8_t * ) pxIterator->pxNextFreeBlock->pxNextFreeBlock ) - ( ( uint8_t * ) pxLink );
+							pxLink->xBlockSize |= xBlockAllocatedBit;
+
+							pxIterator->pxNextFreeBlock = pxIterator->pxNextFreeBlock->pxNextFreeBlock;
+						}
+						pvReturn = ( void * ) ( ( ( uint8_t * ) pxLink ) + xHeapStructSize );
+						( void ) xTaskResumeAll();
+					}
+					else
+					{
+						( void ) xTaskResumeAll();
+						pvReturn = pvPortMalloc( xWantedSize - xHeapStructSize );
+						if(pvReturn != NULL)
+						{
+							int i;
+							puc = ( uint8_t * ) pvReturn;
+							for( i = 0; i < pxLink->xBlockSize; i++ )
+							{
+								puc[i] = ( *( ( uint8_t * ) pv ) + i );
+							}
+							pxLink->xBlockSize |= xBlockAllocatedBit;
+							vPortFree( pv );
+						}
+					}
+				}
+				else
+				{
+					pvReturn = pv;
+				}
+			}
+			else
+			{
+				mtCOVERAGE_TEST_MARKER();
+			}
+		}
+		else
+		{
+			mtCOVERAGE_TEST_MARKER();
+		}
+	}
+	return pvReturn;
+}
+/*-----------------------------------------------------------*/
+
 size_t xPortGetFreeHeapSize( void )
 {
 	return xFreeBytesRemaining;

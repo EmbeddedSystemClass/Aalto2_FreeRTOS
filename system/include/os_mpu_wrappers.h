@@ -121,6 +121,7 @@ only for ports that are using the MPU. */
 		#define xQueueGetMutexHolder			MPU_xQueueGetMutexHolder
 
         #define pvPortMalloc                    MPU_pvPortMalloc
+		#define pvPortRealloc					MPU_pvPortRealloc
         #define vPortFree                       MPU_vPortFree
         #define xPortGetFreeHeapSize            MPU_xPortGetFreeHeapSize
         #define vPortInitialiseBlocks           MPU_vPortInitialiseBlocks

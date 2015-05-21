@@ -519,6 +519,19 @@ void *MPU_pvPortMalloc( size_t xSize )
 	return pvReturn;
 }
 
+/*----------------------------------------------------------------------------*/
+
+void *MPU_pvPortRealloc( void *pv, size_t xSize )
+{
+	void *pvReturn;
+	BaseType_t xRunningPrivileged = prvRaisePrivilege();
+
+	pvReturn = pvPortRealloc( pv, xSize );
+
+	portRESET_PRIVILEGE( xRunningPrivileged );
+
+	return pvReturn;
+}
 
 /*----------------------------------------------------------------------------*/
 
