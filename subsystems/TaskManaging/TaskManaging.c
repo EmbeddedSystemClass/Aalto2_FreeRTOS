@@ -63,16 +63,16 @@ void TaskManaging(void)
 	tdSR.event[0] = event_array[0];
 	tdADS.event[0] = event_array[0];*/
 
-	///TaskCreateFromDescriptor(&tdACS);
+	//TaskCreateFromDescriptor(&tdACS);
 	//TaskMannagingConnectToQueue(&tdADS, 1, 0);
 	//TaskMannagingConnectToQueue(&tdTC, 0, 0);
 	//TaskMannagingConnectToQueue(&tdACS, 2, 2);
 
 	//TaskCreateFromDescriptor(&tdADS);
-	/*TaskMannagingConnectToQueue(&tdADS, 0, 0);
-	TaskMannagingConnectToQueue(&tdADS, 1, 1);
+	//TaskMannagingConnectToQueue(&tdADS, 0, 0);
+	//TaskMannagingConnectToQueue(&tdADS, 1, 1);
 
-	TaskMannagingConnectToQueue(&tdSR, 0, 0);*/
+	//TaskMannagingConnectToQueue(&tdSR, 0, 0);
 
 }
 
@@ -108,11 +108,14 @@ void TaskCreateFromDescriptor(TaskDescriptor_t *td)
 		func((void *)&td);
 	}
 
-	if(xTaskCreate(td->work_func, "", td->stack_size, (void *)&td, td->priority, &(td->handle)) == pdFAIL)
+	if(td->work_func != NULL)
 	{
-		// deinitialize, report error
+		if(xTaskCreate(td->work_func, "", td->stack_size, (void *)&td, td->priority, &(td->handle)) == pdFAIL)
+		{
+			// deinitialize, report error
+		}
+		td->active = pdTRUE;
 	}
-	td->active = pdTRUE;
 }
 
 

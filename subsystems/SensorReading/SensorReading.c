@@ -23,9 +23,6 @@ TaskDescriptor_t tdSR = {
 		pdFAIL
 };
 
-#define SensorDataQ (tdSR.queue[0])
-#define torqueSignalEG (tdSR.event[0])
-
 uint8 i2cRegisterRead(uint8 sadd, uint8 regadd)
 {
 	int d = 0;

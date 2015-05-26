@@ -57,7 +57,7 @@ void main(void)
 	spiEnableNotification(spiREG4, (uint32)((uint32)0U << 9U) | (uint32)((uint32)0U << 8U));
 	canInit();
 	canCreateLinkOS(1, 16, 64);
-	canCreateLinkOS(2, 2, 64);
+	canCreateLinkOS(2, 1, 64);
 	//initTest();
 	/*char ret;
 	ret = f_initvolume(ram_initfunc);

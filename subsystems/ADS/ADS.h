@@ -10,6 +10,10 @@
 
 #include "TaskManaging.h"
 
+#define HIL_recv (tdADS.queue[0])
+#define HIL_send (tdADS.queue[1])
+
+#define torqueSignalEG (tdADS.event[0])
 
 /*struct DeterminationData
 {

@@ -10,6 +10,9 @@
 
 #include "TaskManaging.h"
 
+#define SensorDataQ (tdSR.queue[0])
+#define torqueSignalEG (tdSR.event[0])
+
 void InitSR(void *pvParams);
 void SensorReading(void *pvParams);
 

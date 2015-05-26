@@ -42,12 +42,6 @@ TaskDescriptor_t tdADS = {
 };
 
 
-
-#define HIL_recv (tdADS.queue[0])
-#define HIL_send (tdADS.queue[1])
-
-#define torqueSignalEG (tdADS.event[0])
-
 /*extern QueueHandle_t stateQ;
 extern QueueHandle_t BfieldQ;
 extern EventGroupHandle_t torqueSignalEG;*/
@@ -93,8 +87,8 @@ void StateDetermination(void *pvParams)
 	//double *om = pvPortMalloc(sizeof(double));
 	double *sim_time = pvPortMalloc(sizeof(double));
 
-	double *result1 = pvPortMalloc(sizeof(double));
-	double *st_out = pvPortMalloc(sizeof(double));
+	double *result1 = pvPortMalloc(sizeof(double)*6);
+	double *st_out = pvPortMalloc(sizeof(double)*13);
 	//double st_out[13];
 	//double *sun_v_m = pvPortMalloc(sizeof(double));
 	//double *T_ext = pvPortMalloc(sizeof(double)*3);

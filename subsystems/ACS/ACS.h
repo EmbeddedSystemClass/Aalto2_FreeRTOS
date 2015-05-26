@@ -7,6 +7,12 @@
 #define PRIORITY_NORMAL 2
 #define PRIORITY_HIGH 3
 
+#define controlSignalQ (tdACS.queue[0])
+#define stateQ (tdACS.queue[1])
+#define BfieldQ (tdACS.queue[2])
+
+#define torqueSignalEG (tdACS.event[0])
+
 void ADCSCommands(void *pvParams);
 void InitACS();
 void CalculateSignal(void *pvParams);

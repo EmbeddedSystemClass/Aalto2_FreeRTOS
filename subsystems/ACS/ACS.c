@@ -33,12 +33,6 @@ static MAT *Qs;
 static MAT *Rs;
 static MAT *invRs;
 
-#define controlSignalQ (tdACS.queue[0])
-#define stateQ (tdACS.queue[1])
-#define BfieldQ (tdACS.queue[2])
-
-#define torqueSignalEG (tdACS.event[0])
-
 /*QueueHandle_t controlSignalQ;
 QueueHandle_t stateQ;
 QueueHandle_t BfieldQ;
@@ -52,8 +46,8 @@ TaskDescriptor_t tdACS = {
 		2, // Priority
 		CalculateSignal, // Work function
 		InitACS, // Initialization function
-		20000, // Stack Size
-		ADCSCommands // Register commmands function
+		20000//, // Stack Size
+		//ADCSCommands // Register commmands function
 		//NULL,
 		//pdFALSE
 };

@@ -92,11 +92,7 @@ extern	void	*malloc(size_t),
 #define	malloc(len)		MPU_pvPortMallocc(len)
 #define	calloc(n,len)		MPU_pvPortMalloc(n * len)
 #define	free(ptr)		MPU_vPortFree(ptr)
-/*#define realloc(ptr,len) \
-	do{ \
-		free(ptr);
-		ptr = malloc()
-	}while(0);*/
+#define realloc(ptr,len) MPU_pvPortRealloc(ptr, len)
 
 #ifndef THREADSAFE	/* for use as a shared library */
 #define	THREADSAFE 1
@@ -159,7 +155,11 @@ void	m_version( void );
 		    calloc((size_t)(num),(size_t)sizeof(type))))
 
 #ifdef FREERTOS
-#define RENEW(var, num, type) (type *)0
+//#define RENEW(var, num, type) (type *)0
+#define	RENEW(var,num,type) \
+    ((var)=(type *)((var) ? \
+		    (int)realloc((char *)(var),(size_t)((num)*sizeof(type))) : \
+		    calloc((size_t)(num),(size_t)sizeof(type))))
 #endif
 
 #define	MEMCOPY(from,to,n_items,type) \

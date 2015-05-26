@@ -4,14 +4,14 @@
 #include "matrix2.h"
 #include "quat.h"
 
-#define v_resize(vec, size) v_resize_func(vec, size)
+/*#define v_resize(vec, size) v_resize_func(vec, size)
 
 VEC *v_resize_func(VEC * vec, int size)
 {
 	V_FREE(vec);
  	vec = v_get(size);
  	return vec;
-}
+}*/
 
 
 MAT *inertia = {MNULL};

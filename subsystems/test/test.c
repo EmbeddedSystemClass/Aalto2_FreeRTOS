@@ -31,6 +31,9 @@ void sciTest2(void *pvParams);
 void spiTest1(void *pvParams);
 void spiTest2(void *pvParams);
 
+void canTest1(void *pvParams);
+void canTest2(void *pvParams);
+
 void fatTest(void *pvParams);
 
 
@@ -42,7 +45,7 @@ TaskDescriptor_t tdTest = {
 		0, // Semaphore number
 		0, // Events group number
 		2, // Priority
-		ReallocTest, // Work function
+		NULL,//canTest1, // Work function
 		initTest, // Initialization function
 		20000, // Stack Size
 		TestCommands // Register commmands function
@@ -101,6 +104,8 @@ void initTest()
 	//xTaskCreate(spiTest1, "spiTest1", 2000, NULL, PRIORITY_NORMAL, NULL);
 	//xTaskCreate(spiTest2, "spiTest2", 2000, NULL, PRIORITY_NORMAL+1, NULL);
 	//xTaskCreate(fatTest, "fat", 2000, NULL, PRIORITY_NORMAL, NULL);
+	xTaskCreate(canTest1, "canTest1", 2000, NULL, 2, NULL);
+	xTaskCreate(canTest2, "canTest2", 2000, NULL, 2, NULL);
 
 	//test_mutex = xSemaphoreCreateMutex();
 
@@ -152,20 +157,33 @@ void ReallocTest(void *pvParams)
 
 void canTest1(void *pvParams)
 {
-	uint8 buff[8] = {2, 3, 0, 1, 5, 6, 7, 8};
+	uint8 *buff = "1234567";
+	uint8 buff2[8];
+
+	while(1)
+	{
+		can1SendOS(2, 7, buff);
+		vTaskDelay(3);
+		/*if(can1ReceiveOS(2, 2, buff2) == pdTRUE)
+		{
+			vTaskDelay(20);
+		}*/
+	}
+}
+
+void canTest2(void *pvParams)
+{
+	uint8 *buff = "TEKST OD SLOVA";//{2, 3, 0, 1, 5, 6, 7, 8, 4, 2, 6, 9};
 	uint8 buff2[8];
 
 
 	while(1)
 	{
-		//canTransmit(canREG1, 2, 4, buff);
-		can1SendOS(1, 4, buff);
-		vTaskDelay(200);
-		can1ReceiveOS(1, 4, buff2);
-
-		vTaskDelay(3000);
+		can1SendOS(2, 14, buff);
+		vTaskDelay(10);
 	}
 }
+
 
 void spiTest1(void *pvParams)
 {

@@ -246,7 +246,7 @@ void canCreateLinkOS(uint8 link_num, uint8 link_addr, uint32 buffer_length)
         {
         } /* Wait */
 
-        canREG1->IF1MSK  = 0xC0000000U | (uint32)((uint32)((uint32)0x000007FFU & (uint32)0x000007FFU) << (uint32)18U);
+        canREG1->IF1MSK  = /*0x00000000U*/0xC0000000U | (uint32)((uint32)((uint32)0x000007FFU & (uint32)0x000007FFU) << (uint32)18U);
         canREG1->IF1ARB  = (uint32)0x80000000U | (uint32)0x00000000U | (uint32)0x00000000U | (uint32)((uint32)((uint32)((link_addr*2)+1) & (uint32)0x000007FFU) << (uint32)18U);
         canREG1->IF1MCTL = 0x00001080U | (uint32)0x00000400U | (uint32)0x00000000U | (uint32)8U;
         canREG1->IF1CMD  = (uint8) 0xF8U;
@@ -1270,7 +1270,7 @@ BaseType_t can1SendOS(uint32 link, uint32 length, uint8 * data)
 			xQueueReceive(canTQ[link], &buffer[i], QUEUE_WAIT);
 		}
 
-		canTransmit(canREG1, link*2, data_num, buffer);
+		canTransmit(canREG1, link*2-1, data_num, buffer);
 	}
 	xSemaphoreGive(canSM[link]);
 }
@@ -1305,17 +1305,19 @@ void canMessageNotification(canBASE_t *node, uint32 messageBox)
 
 	if(direction)
 	{
-		data_num = uxQueueMessagesWaitingFromISR(canTQ[link]);
-		if(data_num > 8)
+		if(data_num = uxQueueMessagesWaitingFromISR(canTQ[link]))
 		{
-			data_num = 8;
-		}
-		for(i = 0; i < data_num; i++)
-		{
-			xQueueReceiveFromISR(canTQ[link], &buffer[i], NULL);
-		}
+			if(data_num > 8)
+			{
+				data_num = 8;
+			}
+			for(i = 0; i < data_num; i++)
+			{
+				xQueueReceiveFromISR(canTQ[link], &buffer[i], NULL);
+			}
 
-		canTransmit(canREG1, messageBox, data_num, buffer);
+			canTransmit(canREG1, messageBox, data_num, buffer);
+		}
 	}
 	else
 	{
@@ -1382,7 +1384,7 @@ void can1HighLevelInterrupt(void)
         while ((canREG1->IF1STAT & 0x80U) ==0x80U)
         { 
         } /* Wait */
-        canREG1->IF1CMD = 0x87U;
+        //canREG1->IF1CMD = 0x87U;
 
         canMessageNotification(canREG1, value);
     }
