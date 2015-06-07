@@ -37,8 +37,8 @@ static struct g_spiPacket
     spiDAT1_t g_spiDataFormat;
     uint32  tx_length;
     uint32  rx_length;
-    uint16  * txdata_ptr;
-    uint16  * rxdata_ptr;
+    uint8  * txdata_ptr;
+    uint8  * rxdata_ptr;
     SpiDataStatus_t tx_data_status;
     SpiDataStatus_t rx_data_status;
 } g_spiPacket_t[5U];
@@ -55,9 +55,6 @@ void spiInit(void)
 {
 /* USER CODE BEGIN (2) */
 /* USER CODE END */
-
-
-
 
     /** @b initialize @b SPI3 */
 
@@ -85,8 +82,8 @@ void spiInit(void)
                   | (uint32)((uint32)0U << 21U)  /* wait on enable */
                   | (uint32)((uint32)0U << 20U)  /* shift direction */
                   | (uint32)((uint32)0U << 17U)  /* clock polarity */
-                  | (uint32)((uint32)0U << 16U)  /* clock phase */
-                  | (uint32)((uint32)99U << 8U) /* baudrate prescale */
+                  | (uint32)((uint32)1U << 16U)  /* clock phase */
+                  | (uint32)((uint32)249U << 8U) /* baudrate prescale */
                   | (uint32)((uint32)8U << 0U);  /* data word length */
 
     /** - Data Format 1 */
@@ -417,7 +414,7 @@ void spiSetFunctional(spiBASE_t *spi, uint32 port)
 /* SourceId : SPI_SourceId_003 */
 /* DesignId : SPI_DesignId_007 */
 /* Requirements : HL_SR133 */
-uint32 spiReceiveData(spiBASE_t *spi, spiDAT1_t *dataconfig_t, uint32 blocksize, uint16 * destbuff)
+uint32 spiReceiveData(spiBASE_t *spi, spiDAT1_t *dataconfig_t, uint32 blocksize, uint8 * destbuff)
 {
 /* USER CODE BEGIN (6) */
 /* USER CODE END */
@@ -448,7 +445,7 @@ uint32 spiReceiveData(spiBASE_t *spi, spiDAT1_t *dataconfig_t, uint32 blocksize,
         {
         } /* Wait */
         /*SAFETYMCUSW 45 D MR:21.1 <APPROVED> "Valid non NULL input parameters are only allowed in this driver" */
-        *destbuff = (uint16)spi->BUF;
+        *destbuff = (uint8)spi->BUF;
         /*SAFETYMCUSW 567 S MR:17.1,17.4 <APPROVED> "Pointer increment needed" */
         destbuff++;
         blocksize--;
@@ -475,19 +472,29 @@ uint32 spiReceiveData(spiBASE_t *spi, spiDAT1_t *dataconfig_t, uint32 blocksize,
 /* SourceId : SPI_SourceId_004 */
 /* DesignId : SPI_DesignId_008 */
 /* Requirements : HL_SR134 */
-void spiGetData(spiBASE_t *spi, spiDAT1_t *dataconfig_t, uint32 blocksize, uint16 * destbuff)
+void spiGetData(spiBASE_t *spi, spiDAT1_t *dataconfig_t, uint32 blocksize, uint8 * destbuff)
 {
      uint32 index = (spi == spiREG1) ? 0U :((spi==spiREG2) ? 1U : ((spi==spiREG3) ? 2U:((spi==spiREG4) ? 3U:4U)));
 
 /* USER CODE BEGIN (8) */
 /* USER CODE END */
 
-     g_spiPacket_t[index].rx_length = blocksize;
+     g_spiPacket_t[index].tx_length       = blocksize;
+     g_spiPacket_t[index].rx_length       = blocksize;
+     g_spiPacket_t[index].txdata_ptr      = NULL;
+     g_spiPacket_t[index].rxdata_ptr      = destbuff;
+     g_spiPacket_t[index].g_spiDataFormat = *dataconfig_t;
+     g_spiPacket_t[index].tx_data_status  = SPI_COMPLETED;
+     g_spiPacket_t[index].rx_data_status  = SPI_PENDING;
+
+     spi->INT0 |= 0x0300U;
+
+     /*g_spiPacket_t[index].rx_length = blocksize;
      g_spiPacket_t[index].rxdata_ptr   = destbuff;
      g_spiPacket_t[index].g_spiDataFormat = *dataconfig_t;
      g_spiPacket_t[index].rx_data_status = SPI_PENDING;
 
-     spi->INT0 |= 0x0100U;
+     spi->INT0 |= 0x0300U;*/
 
 /* USER CODE BEGIN (9) */
 /* USER CODE END */
@@ -508,10 +515,10 @@ void spiGetData(spiBASE_t *spi, spiDAT1_t *dataconfig_t, uint32 blocksize, uint1
 /* SourceId : SPI_SourceId_005 */
 /* DesignId : SPI_DesignId_005 */
 /* Requirements : HL_SR131 */
-uint32 spiTransmitData(spiBASE_t *spi, spiDAT1_t *dataconfig_t, uint32 blocksize, uint16 * srcbuff)
+uint32 spiTransmitData(spiBASE_t *spi, spiDAT1_t *dataconfig_t, uint32 blocksize, uint8 * srcbuff)
 {
     volatile uint32 SpiBuf;
-    uint16 Tx_Data;
+    uint8 Tx_Data;
     uint32 Chip_Select_Hold = (dataconfig_t->CS_HOLD) ? 0x10000000U : 0U;
     uint32 WDelay = (dataconfig_t->WDEL) ? 0x04000000U : 0U;
     SPIDATAFMT_t DataFormat = dataconfig_t->DFSEL;
@@ -570,7 +577,7 @@ uint32 spiTransmitData(spiBASE_t *spi, spiDAT1_t *dataconfig_t, uint32 blocksize
 /* SourceId : SPI_SourceId_006 */
 /* DesignId : SPI_DesignId_006 */
 /* Requirements : HL_SR132 */
-void spiSendData(spiBASE_t *spi, spiDAT1_t *dataconfig_t, uint32 blocksize, uint16 * srcbuff)
+void spiSendData(spiBASE_t *spi, spiDAT1_t *dataconfig_t, uint32 blocksize, uint8 * srcbuff)
 {
         uint32 index = (spi == spiREG1) ? 0U :((spi==spiREG2) ? 1U : ((spi==spiREG3) ? 2U:((spi==spiREG4) ? 3U:4U)));
 
@@ -604,9 +611,9 @@ void spiSendData(spiBASE_t *spi, spiDAT1_t *dataconfig_t, uint32 blocksize, uint
 /* SourceId : SPI_SourceId_007 */
 /* DesignId : SPI_DesignId_009 */
 /* Requirements : HL_SR135 */
-uint32 spiTransmitAndReceiveData(spiBASE_t *spi, spiDAT1_t *dataconfig_t, uint32 blocksize, uint16 * srcbuff, uint16 * destbuff)
+uint32 spiTransmitAndReceiveData(spiBASE_t *spi, spiDAT1_t *dataconfig_t, uint32 blocksize, uint8 * srcbuff, uint8 * destbuff)
 {
-    uint16 Tx_Data;
+    uint8 Tx_Data;
     uint32 Chip_Select_Hold = (dataconfig_t->CS_HOLD) ? 0x10000000U : 0U;
     uint32 WDelay = (dataconfig_t->WDEL) ? 0x04000000U : 0U;
     SPIDATAFMT_t DataFormat = dataconfig_t->DFSEL;
@@ -640,7 +647,7 @@ uint32 spiTransmitAndReceiveData(spiBASE_t *spi, spiDAT1_t *dataconfig_t, uint32
         {
         } /* Wait */
         /*SAFETYMCUSW 45 D MR:21.1 <APPROVED> "Valid non NULL input parameters are only allowed in this driver" */
-        *destbuff = (uint16)spi->BUF;
+        *destbuff = (uint8)spi->BUF;
         /*SAFETYMCUSW 567 S MR:17.1,17.4 <APPROVED> "Pointer increment needed" */
         destbuff++;
 
@@ -669,7 +676,7 @@ uint32 spiTransmitAndReceiveData(spiBASE_t *spi, spiDAT1_t *dataconfig_t, uint32
 /* SourceId : SPI_SourceId_008 */
 /* DesignId : SPI_DesignId_010 */
 /* Requirements : HL_SR136 */
-void spiSendAndGetData(spiBASE_t *spi, spiDAT1_t *dataconfig_t, uint32 blocksize, uint16 * srcbuff, uint16 * destbuff)
+void spiSendAndGetData(spiBASE_t *spi, spiDAT1_t *dataconfig_t, uint32 blocksize, uint8 * srcbuff, uint8 * destbuff)
 {
 
 /* USER CODE BEGIN (17) */
@@ -946,17 +953,13 @@ void spi4GetConfigValue(spi_config_reg_t *config_reg, config_value_type_t type)
 }
 
 
-
-
-
-
 /* USER CODE BEGIN (54) */
 
-BaseType_t spiGetDataOS(spiBASE_t *spi, spiDAT1_t *dataconfig_t, uint32 blocksize, uint16 * destbuff)
+BaseType_t spiGetDataOS(spiBASE_t *spi, spiDAT1_t *dataconfig_t, uint32 blocksize, uint8 * destbuff)
 {
 	EventBits_t uxBits;
 	BaseType_t ret = pdFALSE;
-	TickType_t time;
+	uint8 SpiBuf;
 
 	uint32 index = (spi == spiREG3) ? 0U :(spi==spiREG4) ? 1U : 2U;
 	if(index == 2U)
@@ -966,9 +969,14 @@ BaseType_t spiGetDataOS(spiBASE_t *spi, spiDAT1_t *dataconfig_t, uint32 blocksiz
 
 	if(xSemaphoreTake(spi_mutex[index], SEMAPHORE_WAIT_TIME) == pdTRUE)
 	{
-		spiGetData(spi, dataconfig_t, blocksize-1, destbuff+1);
 
-		uxBits = xEventGroupWaitBits(spi_events[index], (uint8)1U, pdTRUE, pdFALSE, EVENT_WAIT_TIME*(1+((int)(blocksize/100))));
+        if((spiREG3->FLG & 0x00000100U) == 0x00000100U)
+        {
+            SpiBuf = (uint8)spiREG3->BUF;
+        }
+		spiGetData(spi, dataconfig_t, blocksize, destbuff);
+		xEventGroupClearBits(spi_events[index], (uint8)1U);
+		uxBits = xEventGroupWaitBits(spi_events[index], (uint8)1U, pdTRUE, pdFALSE, EVENT_WAIT_TIME*(3+((int)(blocksize/50))));
 		if( ( uxBits & 1U ) != 0 )	// rx complete signal
 		{
 			ret = pdTRUE;
@@ -978,11 +986,11 @@ BaseType_t spiGetDataOS(spiBASE_t *spi, spiDAT1_t *dataconfig_t, uint32 blocksiz
 	return ret;
 }
 
-BaseType_t spiSendDataOS(spiBASE_t *spi, spiDAT1_t *dataconfig_t, uint32 blocksize, uint16 * srcbuff)
+BaseType_t spiSendDataOS(spiBASE_t *spi, spiDAT1_t *dataconfig_t, uint32 blocksize, uint8 * srcbuff)
 {
 	EventBits_t uxBits;
 	BaseType_t ret = pdFALSE;
-	TickType_t time;
+	uint8 SpiBuf;
 
 	uint32 index = (spi == spiREG3) ? 0U :(spi==spiREG4) ? 1U : 2U;
 	if(index == 2U)
@@ -993,21 +1001,26 @@ BaseType_t spiSendDataOS(spiBASE_t *spi, spiDAT1_t *dataconfig_t, uint32 blocksi
 	if(xSemaphoreTake(spi_mutex[index], SEMAPHORE_WAIT_TIME) == pdTRUE)
 	{
 		spiSendData(spi, dataconfig_t, blocksize, srcbuff);
-		uxBits = xEventGroupWaitBits(spi_events[index], (uint8)1U, pdTRUE, pdFALSE, EVENT_WAIT_TIME*(1+((int)(blocksize/100))));
-		if( ( uxBits & 1U ) != 0 )	// tx complete signal
+		xEventGroupClearBits(spi_events[index], (uint8)2U);
+		uxBits = xEventGroupWaitBits(spi_events[index], (uint8)2U, pdTRUE, pdFALSE, EVENT_WAIT_TIME*(3+((int)(blocksize/50))));
+		if( ( uxBits & 2U ) != 0 )	// tx complete signal
 		{
 			ret = pdTRUE;
 		}
+
+        if((spiREG3->FLG & 0x00000100U) == 0x00000100U)
+        {
+            SpiBuf = (uint8)spiREG3->BUF;
+        }
 		xSemaphoreGive(spi_mutex[index]);
 	}
 	return ret;
 }
 
-BaseType_t spiSendAndGetDataOS(spiBASE_t *spi, spiDAT1_t *dataconfig_t, uint32 blocksize, uint16 * srcbuff, uint16 * destbuff)
+BaseType_t spiSendAndGetDataOS(spiBASE_t *spi, spiDAT1_t *dataconfig_t, uint32 blocksize, uint8 * srcbuff, uint8 * destbuff)
 {
 	EventBits_t uxBits;
 	BaseType_t ret = pdFALSE;
-	TickType_t time;
 
 	uint32 index = (spi == spiREG3) ? 0U :(spi==spiREG4) ? 1U : 2U;
 	if(index == 2U)
@@ -1018,7 +1031,8 @@ BaseType_t spiSendAndGetDataOS(spiBASE_t *spi, spiDAT1_t *dataconfig_t, uint32 b
 	if(xSemaphoreTake(spi_mutex[index], SEMAPHORE_WAIT_TIME) == pdTRUE)
 	{
 		spiSendAndGetData(spi, dataconfig_t, blocksize, srcbuff, destbuff);
-		uxBits = xEventGroupWaitBits(spi_events[index], (uint8)1U, pdTRUE, pdFALSE, EVENT_WAIT_TIME*(1+((int)(blocksize/100))));
+		xEventGroupClearBits(spi_events[index], (uint8)1U);
+		uxBits = xEventGroupWaitBits(spi_events[index], (uint8)1U, pdTRUE, pdFALSE, EVENT_WAIT_TIME*(3+((int)(blocksize/100))));
 		if( ( uxBits & 1U ) != 0 )	// rx complete signal
 		{
 			ret = pdTRUE;
@@ -1031,16 +1045,11 @@ BaseType_t spiSendAndGetDataOS(spiBASE_t *spi, spiDAT1_t *dataconfig_t, uint32 b
 
 void spiEndNotification(spiBASE_t *spi)
 {
-	BaseType_t xHigherPriorityTaskWoken;
-	xHigherPriorityTaskWoken = pdFALSE;
-	uint32 index = (spi == spiREG3) ? 0U :(spi==spiREG4) ? 1U : 2U;
+	/*uint32 index = (spi == spiREG3) ? 0U :(spi==spiREG4) ? 1U : 2U;
 	if(index == 2U)
 	{
 		return;
-	}
-	xEventGroupSetBitsFromISR(spi_events[index], 1U, &xHigherPriorityTaskWoken);
-	portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-
+	}*/
 }
 
 /* USER CODE END */
@@ -1063,19 +1072,23 @@ void mibspi3HighInterruptLevel(void)
     uint32 flags = (spiREG3->FLG & 0x0000FFFFU) & (~spiREG3->LVL & 0x035FU);
     uint32 vec = spiREG3->INTVECT0;
 
+	BaseType_t xHigherPriorityTaskWoken;
+	xHigherPriorityTaskWoken = pdFALSE;
+
 /* USER CODE BEGIN (56) */
 /* USER CODE END */
 
     switch(vec)
     {
 
-    case 0x24U: /* Receive Buffer Full Interrupt */
+    case 0x24U: // Receive Buffer Full Interrupt
              {
-                uint16 *destbuff;
+                uint8 *destbuff;
                 destbuff = g_spiPacket_t[2U].rxdata_ptr;
 
-                *destbuff = (uint16)spiREG3->BUF;
-                /*SAFETYMCUSW 567 S MR:17.1,17.4 <APPROVED> "Pointer increment needed" */
+                *destbuff = (uint8)spiREG3->BUF;
+
+                // SAFETYMCUSW 567 S MR:17.1,17.4 <APPROVED> "Pointer increment needed"
                 g_spiPacket_t[2U].rxdata_ptr++;
                 g_spiPacket_t[2U].rx_length--;
 
@@ -1084,18 +1097,31 @@ void mibspi3HighInterruptLevel(void)
                     spiREG3->INT0 = (spiREG3->INT0 & 0x0000FFFFU) & (~(uint32)0x0100U);
                     g_spiPacket_t[2U].rx_data_status = SPI_COMPLETED;
                     spiEndNotification(spiREG3);
+                    xEventGroupSetBitsFromISR(spi_events[0], 1U, &xHigherPriorityTaskWoken);
+                    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
                 }
                 break;
              }
 
-    case 0x28U: /* Transmit Buffer Empty Interrupt */
+    case 0x28U: // Transmit Buffer Empty Interrupt
              {
                  volatile uint32 SpiBuf;
                  uint32 Chip_Select_Hold = 0U;
                  uint32 WDelay = (g_spiPacket_t[2U].g_spiDataFormat.WDEL) ? 0x04000000U: 0U;
                  SPIDATAFMT_t DataFormat = g_spiPacket_t[2U].g_spiDataFormat.DFSEL;
                  uint8 ChipSelect = g_spiPacket_t[2U].g_spiDataFormat.CSNR;
-                 uint16 Tx_Data = *g_spiPacket_t[2U].txdata_ptr;
+                 //uint16 Tx_Data = *g_spiPacket_t[2U].txdata_ptr;
+
+				 uint8 Tx_Data;
+
+				 if(g_spiPacket_t[2U].tx_data_status == SPI_PENDING)
+				 {
+					 Tx_Data = *g_spiPacket_t[2U].txdata_ptr;
+				 }
+				 else
+				 {
+					 Tx_Data = 0xFF;
+				 }
 
                  g_spiPacket_t[2U].tx_length--;
 
@@ -1114,9 +1140,9 @@ void mibspi3HighInterruptLevel(void)
                                  (Chip_Select_Hold) |
                                  (uint32)Tx_Data;
 
-                 /*SAFETYMCUSW 567 S MR:17.1,17.4 <APPROVED> "Pointer increment needed" */
+                 // SAFETYMCUSW 567 S MR:17.1,17.4 <APPROVED> "Pointer increment needed"
                  g_spiPacket_t[2U].txdata_ptr++;
-                 /* Dummy Receive read if no RX Interrupt enabled */
+                 // Dummy Receive read if no RX Interrupt enabled
                  if(((spiREG3->INT0 & 0x0000FFFFU)& 0x0100U) == 0U)
                  {
                      if((spiREG3->FLG & 0x00000100U) == 0x00000100U)
@@ -1127,14 +1153,16 @@ void mibspi3HighInterruptLevel(void)
 
                  if(g_spiPacket_t[2U].tx_length == 0U)
                  {
-                    spiREG3->INT0 = (spiREG3->INT0 & 0x0000FFFFU) & (~(uint32)0x0200U); /* Disable Interrupt */
+                    spiREG3->INT0 = (spiREG3->INT0 & 0x0000FFFFU) & (~(uint32)0x0200U); // Disable Interrupt
                     g_spiPacket_t[2U].tx_data_status = SPI_COMPLETED;
                     spiEndNotification(spiREG3);
+                    xEventGroupSetBitsFromISR(spi_events[0], 2U, &xHigherPriorityTaskWoken);
+					portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
                 }
                 break;
              }
 
-    default: /* Clear Flags and return  */
+    default: // Clear Flags and return
              spiREG3->FLG = flags;
              spiNotification(spiREG3, flags & 0xFFU);
              break;
@@ -1174,10 +1202,10 @@ void spi4HighLevelInterrupt(void)
 
     case 0x24U: /* Receive Buffer Full Interrupt */
              {
-               uint16 *destbuff;
+               uint8 *destbuff;
                 destbuff = g_spiPacket_t[3U].rxdata_ptr;
 
-                *destbuff = (uint16)spiREG4->BUF;
+                *destbuff = (uint8)spiREG4->BUF;
                 /*SAFETYMCUSW 567 S MR:17.1,17.4 <APPROVED> "Pointer increment needed" */
                 g_spiPacket_t[3U].rxdata_ptr++;
                 g_spiPacket_t[3U].rx_length--;
@@ -1198,7 +1226,7 @@ void spi4HighLevelInterrupt(void)
                  uint32 WDelay = (g_spiPacket_t[3U].g_spiDataFormat.WDEL) ? 0x04000000U: 0U;
                  SPIDATAFMT_t DataFormat = g_spiPacket_t[3U].g_spiDataFormat.DFSEL;
                  uint8 ChipSelect = g_spiPacket_t[3U].g_spiDataFormat.CSNR;
-                 uint16 Tx_Data = *g_spiPacket_t[3U].txdata_ptr;
+                 uint8 Tx_Data = *g_spiPacket_t[3U].txdata_ptr;
 
                  g_spiPacket_t[3U].tx_length--;
 

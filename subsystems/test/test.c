@@ -20,6 +20,8 @@
 #include "spi.h"
 #include "can.h"
 
+#include "fat_sl.h"
+
 void canTest1(void *pvParams);
 
 void i2cTest1(void *pvParams);
@@ -45,7 +47,7 @@ TaskDescriptor_t tdTest = {
 		0, // Semaphore number
 		0, // Events group number
 		2, // Priority
-		NULL,//canTest1, // Work function
+		fatTest, // Work function
 		initTest, // Initialization function
 		20000, // Stack Size
 		TestCommands // Register commmands function
@@ -104,12 +106,29 @@ void initTest()
 	//xTaskCreate(spiTest1, "spiTest1", 2000, NULL, PRIORITY_NORMAL, NULL);
 	//xTaskCreate(spiTest2, "spiTest2", 2000, NULL, PRIORITY_NORMAL+1, NULL);
 	//xTaskCreate(fatTest, "fat", 2000, NULL, PRIORITY_NORMAL, NULL);
-	xTaskCreate(canTest1, "canTest1", 2000, NULL, 2, NULL);
-	xTaskCreate(canTest2, "canTest2", 2000, NULL, 2, NULL);
+	//xTaskCreate(canTest1, "canTest1", 2000, NULL, 2, NULL);
+	//xTaskCreate(canTest2, "canTest2", 2000, NULL, 2, NULL);
 
 	//test_mutex = xSemaphoreCreateMutex();
 
 }
+
+
+void fatTest(void *pvParams)
+{
+	//char ret;
+	//vTaskDelay(5000);
+	//ret = f_initvolume(sdcard_initfunc);
+	//ret = f_format( F_FAT32_MEDIA );
+	//ret = fs_init();
+	FatCli();
+
+	//vTaskDelay(200);
+	while(1)
+	{}
+
+}
+
 
 
 void ReallocTest(void *pvParams)
@@ -187,14 +206,16 @@ void canTest2(void *pvParams)
 
 void spiTest1(void *pvParams)
 {
-	uint16 buff[5] = {1, 2, 3, 4, 5};
-	uint16 buff2[5];
+	uint8 buff[5] = {1, 2, 3, 4, 5};
+	uint8 buff2[5];
 	spiDAT1_t data1;
+
+	BaseType_t ret;
 
 	data1.CS_HOLD = true;
 	data1.WDEL = false;
 	data1.DFSEL = SPI_FMT_0;
-	data1.CSNR = SPI_CS_0;
+	data1.CSNR = SPI_CS_1;
 
 	while(1)
 	{
@@ -203,16 +224,17 @@ void spiTest1(void *pvParams)
 		//spiSendDataOS(spiREG4, &data1, 5, buff);
 		//spiSendDataOS(spiREG4, &data1, 5, buff);
 		vTaskDelay(1);
-		spiSendAndGetDataOS(spiREG4, &data1, 5, buff, buff2);
-
-		//vTaskDelay(10);
+		ret = spiSendAndGetDataOS(spiREG3, &data1, 5, buff, buff2);
+		vTaskDelay(10);
+		ret = spiGetDataOS(spiREG3, &data1, 5, buff2);
+		vTaskDelay(10);
 	}
 }
 
 void spiTest2(void *pvParams)
 {
-	uint16 buff[3] = {6, 7, 8};
-	uint16 buff2[5];
+	uint8 buff[3] = {6, 7, 8};
+	uint8 buff2[5];
 	spiDAT1_t data1;
 
 	data1.CS_HOLD = true;

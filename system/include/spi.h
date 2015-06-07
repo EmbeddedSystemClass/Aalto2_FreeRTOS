@@ -182,12 +182,12 @@ void spiInit(void);
 void spiSetFunctional(spiBASE_t *spi, uint32 port);
 void spiEnableNotification(spiBASE_t *spi, uint32 flags);
 void spiDisableNotification(spiBASE_t *spi, uint32 flags);
-uint32 spiTransmitData(spiBASE_t *spi, spiDAT1_t *dataconfig_t, uint32 blocksize, uint16 * srcbuff);
-void spiSendData(spiBASE_t *spi, spiDAT1_t *dataconfig_t, uint32 blocksize, uint16 * srcbuff);
-uint32 spiReceiveData(spiBASE_t *spi, spiDAT1_t *dataconfig_t, uint32 blocksize, uint16 * destbuff);
-void spiGetData(spiBASE_t *spi, spiDAT1_t *dataconfig_t, uint32 blocksize, uint16 * destbuff);
-uint32 spiTransmitAndReceiveData(spiBASE_t *spi, spiDAT1_t *dataconfig_t, uint32 blocksize, uint16 * srcbuff, uint16 * destbuff);
-void spiSendAndGetData(spiBASE_t *spi, spiDAT1_t *dataconfig_t, uint32 blocksize, uint16 * srcbuff, uint16 * destbuff);
+uint32 spiTransmitData(spiBASE_t *spi, spiDAT1_t *dataconfig_t, uint32 blocksize, uint8 * srcbuff);
+void spiSendData(spiBASE_t *spi, spiDAT1_t *dataconfig_t, uint32 blocksize, uint8 * srcbuff);
+uint32 spiReceiveData(spiBASE_t *spi, spiDAT1_t *dataconfig_t, uint32 blocksize, uint8 * destbuff);
+void spiGetData(spiBASE_t *spi, spiDAT1_t *dataconfig_t, uint32 blocksize, uint8 * destbuff);
+uint32 spiTransmitAndReceiveData(spiBASE_t *spi, spiDAT1_t *dataconfig_t, uint32 blocksize, uint8 * srcbuff, uint8 * destbuff);
+void spiSendAndGetData(spiBASE_t *spi, spiDAT1_t *dataconfig_t, uint32 blocksize, uint8 * srcbuff, uint8 * destbuff);
 void spiEnableLoopback(spiBASE_t *spi, loopBackType_t Loopbacktype);
 void spiDisableLoopback(spiBASE_t *spi);
 SpiDataStatus_t SpiTxStatus(spiBASE_t *spi);
@@ -218,9 +218,9 @@ void spiEndNotification(spiBASE_t *spi);
 /**@}*/
 /* USER CODE BEGIN (1) */
 
-BaseType_t spiGetDataOS(spiBASE_t *spi, spiDAT1_t *dataconfig_t, uint32 blocksize, uint16 * destbuff);
-BaseType_t spiSendDataOS(spiBASE_t *spi, spiDAT1_t *dataconfig_t, uint32 blocksize, uint16 * srcbuff);
-BaseType_t spiSendAndGetDataOS(spiBASE_t *spi, spiDAT1_t *dataconfig_t, uint32 blocksize, uint16 * srcbuff, uint16 * destbuff);
+BaseType_t spiGetDataOS(spiBASE_t *spi, spiDAT1_t *dataconfig_t, uint32 blocksize, uint8 * destbuff);
+BaseType_t spiSendDataOS(spiBASE_t *spi, spiDAT1_t *dataconfig_t, uint32 blocksize, uint8 * srcbuff);
+BaseType_t spiSendAndGetDataOS(spiBASE_t *spi, spiDAT1_t *dataconfig_t, uint32 blocksize, uint8 * srcbuff, uint8 * destbuff);
 
 /* USER CODE END */
 
